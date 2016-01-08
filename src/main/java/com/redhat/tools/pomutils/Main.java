@@ -136,7 +136,13 @@ public class Main {
                 changed=true;
             if(fixDependencies(pom,a,XML.getElements(pom.doc,d)))
                 changed=true;
-            
+        }
+        return changed;
+    }
+
+    private static boolean fixParents(Artifact a) throws Exception {
+        boolean changed=false;
+        for(POM pom: POM.allPOMs.values()) {
             // Update parent if necessary
             String parentGroupId=pom.getParentGroupId();
             String parentArtifactId=pom.getParentArtifactId();
@@ -186,6 +192,8 @@ public class Main {
         String varg=null;
         boolean writeAll=false;
         boolean pomNeeded=false;
+        boolean processParents=true;
+        boolean processDependencies=true;
         String buildManifest=null;
         String allManifest="all.mf.xml";
         String outputFile=null;
@@ -230,6 +238,10 @@ public class Main {
                     outputFile=args[i].substring(2);
                 } else if(args[i].startsWith("-s")) {
                     skeleton=args[i].substring(2);
+                } else if(args[i].startsWith("-ip")) {
+                    processParents = false;
+                } else if(args[i].startsWith("-id")) {
+                    processDependencies = false;
                 }
             } else
                 pomfile=args[i];
@@ -281,8 +293,10 @@ public class Main {
                                      " to "+a.version);
                     if(vc.setVersion(a.version))
                         changed=true;
-                    if(fixDependencies(a))
+                    if(processDependencies && fixDependencies(a))
                         changed=true;
+                    if(processParents && fixParents(a))
+                        changed = true;
                     if(changed)
                         write(writeAll);
                 }
@@ -299,7 +313,9 @@ public class Main {
                             if(vc.setVersion(a.version))
                                 changed=true;
                         }
-                        if(fixDependencies(a))
+                        if(processDependencies && fixDependencies(a))
+                            changed=true;
+                        if(processParents && fixParents(a))
                             changed=true;
                     }
                 }
@@ -353,17 +369,21 @@ public class Main {
                            "\n"+
                            "Change the version of an artifact, and fix its direct dependencies:\n"+
                            "\n"+
-                           "  pomutil <pomfile> -vgroupId:artifact:version\n"+
+                           "  pomutil <pomfile> -vgroupId:artifact:version [-ip] [-id]\n"+
                            "\n"+
                            " Use -a flag to write all poms even if they're not changed\n"+
+                           " Use -ip flag to ignore the parent artifact section when updating\n"+
+                           " Use -id flag to ignore the dependency artifact section when updating\n"+
                            "Sets the version number of groupId:artifact to version in all the poms\n"+
                            "it is referred.\n"+
                            "\n"+
                            "\n"+
                            "Change the versions of artifacts:\n"+
                            "\n"+
-                           "  pomutil <pomfile> -ffile\n"+
+                           "  pomutil <pomfile> -ffile [-ip] [-id]\n"+
                            "\n"+
+                           " Use -ip flag to ignore the parent artifact section when updating\n"+
+                           " Use -id flag to ignore the dependency artifact section when updating\n"+
                            "Sets the version numbers of all artifacts in <file>\n"+
                            "\n"+
                            "\n"+
